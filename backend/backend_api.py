@@ -63,14 +63,20 @@ except Exception as e:
 
 # Load feature importance
 try:
-    feature_importance = pd.read_csv('E:\Desktop\Jobs\projects\Heart Disease\backend\models\final_heart_dataset.csv')
+    feature_csv_path = os.path.join(base_dir, 'models', 'final_heart_dataset.csv')
+    feature_importance = pd.read_csv(feature_csv_path)
     print("✅ Feature data loaded")
-except:
+except Exception as e:
+    print(f"⚠️ Could not load feature data: {e}")
     feature_importance = None
 
 # Claude API client
-CLAUDE_API_KEY = "REPLACED_WITH_ENV_VAR"
-claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
+if CLAUDE_API_KEY:
+    claude_client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+else:
+    print("⚠️ Claude API key not found. Chat feature will be limited.")
+    claude_client = None
 
 # Request/Response Models
 class HealthData(BaseModel):
@@ -216,6 +222,13 @@ async def predict(data: HealthData):
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
+        if claude_client is None:
+            return ChatResponse(
+                response="I'm here to help! However, the AI assistant is not configured. "
+                        "Please set the CLAUDE_API_KEY environment variable to enable this feature. "
+                        "For now, please consult with a healthcare professional for medical advice."
+            )
+        
         # Build context from user data if available
         context = "You are a helpful health assistant for a heart disease prediction app. "
         context += "Provide supportive, accurate medical information. "
@@ -246,7 +259,7 @@ async def chat(request: ChatRequest):
         # Fallback response if Claude API fails
         return ChatResponse(
             response=f"I'm here to help! However, I'm having trouble connecting right now. "
-                    f"Please try again or consult with a healthcare professional for medical advice."
+                    f"Error: {str(e)}. Please try again or consult with a healthcare professional for medical advice."
         )
 
 # Run server
