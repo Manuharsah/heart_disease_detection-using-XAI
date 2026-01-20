@@ -12,6 +12,168 @@ void main() {
   runApp(HeartDiseaseApp());
 }
 
+// ============================================
+// ADD THIS SPLASH SCREEN CLASS
+// ============================================
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> 
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.0, 0.6, curve: Curves.easeInOut),
+      ),
+    );
+    
+    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.3, 1.0, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _animationController.forward();
+
+    // Navigate to HomePage after 2.5 seconds
+    Future.delayed(Duration(milliseconds: 6000), () {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => HomePage(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0)
+                .animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut));
+            return FadeTransition(opacity: fadeAnimation, child: child);
+          },
+          transitionDuration: Duration(milliseconds: 600),
+        ),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color(0xFF6366F1),
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Heart icon with animation
+                Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white, Color(0xFFC7D2FE)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.favorite_rounded,
+                      size: 100,
+                      color: Color(0xFF6366F1),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 40),
+                
+                // PULSE AI Text
+                Text(
+                  'PULSE AI',
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 2.0,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 10),
+                
+                // Subtitle
+                Text(
+                  'Heart Health Predictor',
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white.withOpacity(0.9),
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 40),
+                
+                // Loading indicator
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: Duration(milliseconds: 1200),
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          strokeWidth: 3,
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class HeartDiseaseApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -124,11 +286,15 @@ class HeartDiseaseApp extends StatelessWidget {
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: HomePage(),
+      home: SplashScreen(), // CHANGED FROM HomePage() TO SplashScreen()
       debugShowCheckedModeBanner: false,
     );
   }
 }
+
+// ============================================
+// ALL YOUR EXISTING CODE BELOW (NO CHANGES NEEDED)
+// ============================================
 
 class HomePage extends StatefulWidget {
   @override
