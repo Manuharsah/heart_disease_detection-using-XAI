@@ -48,9 +48,8 @@ scaler = None
 # Load model and scaler
 try:
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(base_dir, 'models', 'final_best_model.pkl')
-    scaler_path = os.path.join(base_dir, 'models', 'feature_scaler.pkl')
-    
+    model_path = os.path.join(base_dir, 'backend', 'models', 'final_best_model.pkl')
+    scaler_path = os.path.join(base_dir, 'backend', 'models', 'feature_scaler.pkl')
     if not os.path.exists(model_path) or not os.path.exists(scaler_path):
         raise FileNotFoundError("Model or scaler file not found.")
         
