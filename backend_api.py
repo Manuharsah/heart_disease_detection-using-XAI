@@ -48,8 +48,9 @@ scaler = None
 # Load model and scaler
 try:
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(base_dir, 'backend', 'models', 'final_best_model.pkl')
-    scaler_path = os.path.join(base_dir, 'backend', 'models', 'feature_scaler.pkl')
+    model_path = os.path.join(base_dir, 'models', 'final_best_model.pkl')
+    scaler_path = os.path.join(base_dir, 'models', 'feature_scaler.pkl')
+    
     if not os.path.exists(model_path) or not os.path.exists(scaler_path):
         raise FileNotFoundError("Model or scaler file not found.")
         
@@ -400,16 +401,79 @@ async def analyze_health(request: Request):
         print(f"[ANALYZE] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Direct predict endpoint
+# Direct predict endpoint - with detailed logging
 @app.post("/predict")
-async def predict_direct(data: HealthData):
-    result = await predict(data)
-    return {
-        "risk_percentage": result.risk_percentage,
-        "risk_level": result.risk_level,
-        "top_risk_factors": result.top_risk_factors,
-        "recommendations": result.recommendations
-    }
+async def predict_direct(request: Request):
+    """
+    Direct predict endpoint
+    """
+    try:
+        # Get raw body
+        body_bytes = await request.body()
+        print(f"\n[PREDICT] ============ NEW REQUEST ============")
+        print(f"[PREDICT] Raw body bytes length: {len(body_bytes)}")
+        print(f"[PREDICT] Raw body: {body_bytes}")
+        
+        if not body_bytes:
+            print(f"[PREDICT] ERROR: Empty request body")
+            raise HTTPException(status_code=400, detail="Request body is empty")
+        
+        # Parse JSON
+        try:
+            body = await request.json()
+            print(f"[PREDICT] Parsed JSON: {body}")
+        except Exception as e:
+            print(f"[PREDICT] ERROR parsing JSON: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+        
+        # Create HealthData object
+        try:
+            data = HealthData(
+                age=int(body.get('age', 50)),
+                sex=str(body.get('sex', 'Male')),
+                bmi=float(body.get('bmi', 25.0)),
+                smoking=str(body.get('smoking', 'No')),
+                physical_activity=str(body.get('physical_activity', 'Yes')),
+                alcohol=str(body.get('alcohol', 'No')),
+                general_health=str(body.get('general_health', 'Good')),
+                sleep_hours=int(body.get('sleep_hours', 7)),
+                diabetes=str(body.get('diabetes', 'No'))
+            )
+            print(f"[PREDICT] HealthData created successfully")
+            print(f"[PREDICT] Data: age={data.age}, sex={data.sex}, bmi={data.bmi}, smoking={data.smoking}")
+            print(f"[PREDICT] Data: physical_activity={data.physical_activity}, alcohol={data.alcohol}")
+            print(f"[PREDICT] Data: general_health={data.general_health}, sleep_hours={data.sleep_hours}, diabetes={data.diabetes}")
+        except Exception as e:
+            print(f"[PREDICT] ERROR creating HealthData: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
+        
+        # Call predict function
+        print(f"[PREDICT] Calling predict() function...")
+        result = await predict(data)
+        print(f"[PREDICT] Prediction successful!")
+        print(f"[PREDICT] Result: {result.risk_level}, {result.risk_percentage}%")
+        
+        # Return response
+        response = {
+            "risk_percentage": result.risk_percentage,
+            "risk_level": result.risk_level,
+            "top_risk_factors": result.top_risk_factors,
+            "recommendations": result.recommendations
+        }
+        
+        print(f"[PREDICT] Returning response: {response}")
+        print(f"[PREDICT] =====================================\n")
+        
+        return response
+        
+    except HTTPException as he:
+        print(f"[PREDICT] HTTPException: {he.status_code} - {he.detail}")
+        print(f"[PREDICT] =====================================\n")
+        raise
+    except Exception as e:
+        print(f"[PREDICT] UNEXPECTED ERROR: {type(e).__name__}: {e}")
+        print(f"[PREDICT] =====================================\n")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 # Chat endpoint
 @app.post("/chat")
