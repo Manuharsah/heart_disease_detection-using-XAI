@@ -6,7 +6,7 @@ import 'dart:io';
 
 // Backend Server Configuration
 // The API key is now stored securely on the backend server
-const String backendUrl = 'http://localhost:8000';
+const String backendUrl = 'https://web-production-a2cea2.up.railway.app';
 
 void main() {
   runApp(HeartDiseaseApp());
@@ -583,50 +583,73 @@ class _InputScreenState extends State<InputScreen> with SingleTickerProviderStat
 
   Future<Map<String, dynamic>?> _analyzeWithClaude(Map<String, dynamic> healthData) async {
     try {
-      debugPrint('Calling backend /analyze endpoint');
+      print('========== DEBUG START ==========');
+      print('URL: $backendUrl/predict');
+      print('Data: $healthData');
+      
+      debugPrint('Calling backend /predict endpoint');
+      
+      final uri = Uri.parse('$backendUrl/predict');
+      print('URI created: $uri');
+      
+      final jsonBody = jsonEncode(healthData);
+      print('JSON encoded: $jsonBody');
+      
+      print('About to make POST request...');
       
       final response = await http.post(
-        Uri.parse('$backendUrl/analyze'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'health_data': healthData,
-        }),
+        body: jsonBody,
       ).timeout(
         const Duration(seconds: 60),
         onTimeout: () {
+          print('TIMEOUT ERROR!');
           throw TimeoutException('Request timed out after 60 seconds');
         },
       );
 
+      print('Got response! Status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
       debugPrint('Backend Response Status: ${response.statusCode}');
+      debugPrint('Backend Response Body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('Success! Data: $data');
         return data as Map<String, dynamic>;
       } else {
+        print('Error status: ${response.statusCode}');
         debugPrint('Backend Error: Status ${response.statusCode}, Body: ${response.body}');
         final errorData = jsonDecode(response.body);
         throw Exception(errorData['error'] ?? 'Backend returned status ${response.statusCode}');
       }
     } on SocketException catch (e) {
+      print('SOCKET EXCEPTION: $e');
       debugPrint('Backend SocketException: $e');
       debugPrint('Make sure the backend server is running on $backendUrl');
       rethrow;
     } on TimeoutException catch (e) {
+      print('TIMEOUT EXCEPTION: $e');
       debugPrint('Backend Timeout: $e');
       rethrow;
     } on http.ClientException catch (e) {
+      print('CLIENT EXCEPTION: $e');
       debugPrint('Backend ClientException: $e');
       debugPrint('Make sure the backend server is running on $backendUrl');
       rethrow;
     } catch (e) {
+      print('UNEXPECTED ERROR: ${e.runtimeType} - $e');
       debugPrint('Backend Unexpected Error: $e');
       rethrow;
+    } finally {
+      print('========== DEBUG END ==========');
     }
   }
-
+  
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
